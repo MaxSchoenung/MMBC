@@ -46,12 +46,12 @@ dmps <- read.delim(paste0(table.dir,"2021-05-14_diff_meth_lsk_p_0.05_delt_0.2.tx
 programs <- read.delim(paste0(table.dir,"2021-07-30_new_cre_9_cluster.txt"),stringsAsFactors = F)
 
 # Load the annotation -----------------------------------------------------
-annot.full <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-colnames(annot.full)[1] <- "Chromosome"
+annot.full <- read.delim(paste0(table.dir,"2022-05-25_MMBC_annotation_modified.bed"),stringsAsFactors = F)
+rownames(annot.full) <- annot.full$IlmnID
 annot.full <- annot.full[annot.full$Chromosome%in%paste0("chr",1:19),]
-rownames(annot.full) <- annot.full$name
 annot <- annot.full[,1:3]
 annot.ranges <- GenomicRanges::makeGRangesFromDataFrame(annot)
+seqlevelsStyle(annot.ranges) = "UCSC"
 
 ## annotate the dmps
 dmps.annot <- cbind(annot[dmps$site,],dmps)

@@ -11,6 +11,7 @@
 library(dplyr)
 library(Gviz)
 library(biomaRt)
+library(GenomicRanges)
 
 # Set Directories ---------------------------------------------------------
 setwd("~/Desktop/")
@@ -25,15 +26,17 @@ mm10 <- useMart("ENSEMBL_MART_ENSEMBL", dataset="mmusculus_gene_ensembl",host="h
 # Load the HSC dmps -------------------------------------------------------
 dmps <- read.delim(paste0(table.dir,"2021-05-14_diff_meth_lsk_p_0.05_delt_0.2.txt"),stringsAsFactors = F)
 dmps[dmps$site=="cg45931459_TC21",]
+
 # Load the methylation data -----------------------------------------------
 mean.meth <- readRDS(paste0(data.dir,"2021-07-13_mean_meth_allPops.RDS"))
 mean.meth <- mean.meth[,c(1:4,8,9,5:7)]
 
 # Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"Annotations/gene-annos/gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-colnames(annot)[1] <- "Chromosome"
-rownames(annot) <- annot$name
-annot.ranges <- GenomicRanges::makeGRangesFromDataFrame(annot)
+annot <- read.delim(paste0(table.dir,"Annotations/2022-05-25_MMBC_annotation_modified.bed"),stringsAsFactors = F)
+rownames(annot) <- annot$IlmnID
+annot.sub <- annot[annot$rnbeads==T,c("Chromosome","Start","End","IlmnID")]
+annot.ranges <- GenomicRanges::makeGRangesFromDataFrame(annot.sub,keep.extra.columns = T)
+seqlevelsStyle(annot.ranges) = "UCSC"
 unique.ranges <- annot.ranges[unique(dmps$site),]
 
 # Define the colours ------------------------------------------------------
@@ -81,7 +84,6 @@ for(i in 1:ncol(mean.meth)){
   mcols(track)$meth <- mean.meth[names(track),i]
   meth.tracks[[i]] <- DataTrack(track, name = colnames(mean.meth)[i],type="h",col=colours[i],
                                 ylim=c(0,1.01))
-
 }
 
 biomTrack <- BiomartGeneRegionTrack(genome = "mm10", name = "ENSEMBL", 

@@ -37,9 +37,8 @@ meth.rnb <- meth(rnb,row.names=T)
 colnames(meth.rnb) <- pheno.rnb$Sample_Name
 
 # Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-colnames(annot)[1] <- "Chromosome"
-rownames(annot) <- annot$name
+annot <- read.delim(paste0(table.dir,"2022-05-25_MMBC_annotation_modified.bed"),stringsAsFactors = F)
+rownames(annot) <- annot$IlmnID
 
 # Load the HSC dmps -------------------------------------------------------
 dmps <- read.delim(paste0(table.dir,"2021-05-14_diff_meth_lsk_p_0.05_delt_0.2.txt"),stringsAsFactors = F)
@@ -54,6 +53,7 @@ cre.list <- list("univ_mdCRE"=mdCRE,"chromCRE"=chromCRE,"novel_mdCRE"=novel_mdCR
 # Clustering with HSC DMPs ------------------------------------------------
 cre.meth <- lapply(cre.list,function(x){meth.rnb[which(rownames(meth.rnb)%in%x),]})
 lapply(cre.meth,dim)
+lapply(cre.list,length)
 
 ## mean methylation
 mean.meth_fun <- function(x){
@@ -70,26 +70,14 @@ mean.meth_fun <- function(x){
 )}
 
 cre.mean <- lapply(cre.meth,mean.meth_fun)
-# mv.mean <- lapply(cre.mean,function(x){
-#   sd.row <- apply(x,1,sd)
-#   return(x[order(sd.row,decreasing = T)[1:5000],])
-# })
 
-#focus on 5k random sites as the sets are too big
+#focus on 1k random sites as the sets are too big
 set.seed(1234)
 cre.rand <- lapply(cre.mean,function(x){x[sample(rownames(x),1000,replace = F),]})
   
 ## calculate the z-score
 fun_zscore <- function(x){(x - mean(x)) / sd(x)}
 cre.z <- lapply(cre.rand,function(x){t(apply(x,1,fun_zscore))})
-
-# cluster rows based on z-score
-# https://observablehq.com/@yurivish/euclidean-distance-and-pearson-correlation
-# I used euclidean distance of z-scores as this equals 2N*pearson distance
-# Proof:
-# dist(scaled.vecs, method="euclidean")^2
-# as.dist(1-cor(t(scaled.vecs), method="pearson"))*16
-
 cre.dist <- lapply(cre.z,function(x)dist(x, method="euclidean"))
 cre.clust <- lapply(cre.dist,function(x)hclust(x,method = "ward.D2"))
 
@@ -197,7 +185,7 @@ write.table(anno.row,paste0(table.dir,Sys.Date(),"_new_cre_9_cluster.txt"),sep="
 test.df <- read.delim((paste0(table.dir,"2021-09-16_new_cre_9_cluster.txt")))
 table(rownames(anno.row)==rownames(test.df))
 table(anno.row$clusters==test.df$clusters)
-export.df <- data.frame(annot[rownames(anno.row),c("Chromosome","Start","End","name")],
+export.df <- data.frame(annot[rownames(anno.row),c("Chromosome","Start","End","IlmnID")],
                         "cluster"=anno.row$clusters,
                         stringsAsFactors = F)
 write.table(anno.row,paste0(table.dir,Sys.Date(),"_new_cre_9_cluster_annotated.txt"),sep="\t",quote=F,row.names = F)

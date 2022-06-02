@@ -44,50 +44,41 @@ meth.ct <- meth.rnb[,1:27]
 pheno.ct <- pheno.rnb[1:27,]
 
 # Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-annot <- annot %>% 
-  rename(
-    "Chromosome" = "X.Chromosome")
-rownames(annot) <- annot$name
-annot.sub <- annot[,c("Chromosome","Start","End","name")]
+annot <- read.delim(paste0(table.dir,"2022-05-25_MMBC_annotation_modified.bed"),stringsAsFactors = F)
+rownames(annot) <- annot$IlmnID
+annot.sub <- annot[annot$rnbeads==T,c("Chromosome","Start","End","IlmnID")]
 annot.ranges <- makeGRangesFromDataFrame(annot.sub,keep.extra.columns = T)
 seqlevelsStyle(annot.ranges) = "UCSC"
 annot.ranges2 <- IRanges::shift(annot.ranges,1) #TWGBS is 1-based and array annotation 0-based
 
-
 # load twgbs data ---------------------------------------------------------------------
-wgbs <- readRDS("/icgc/analysis/OE0565_projects/tce/MouseArray/data/wgbs_mm10_hierachy_methrix/2021-01-29_hierachy_wgbs_all_pops_unfiltered.RDS")
-wgbs.lsk <- wgbs[,grep("lsk",colnames(wgbs))[c(1:4,7)]]#use 12347
+wgbs.lsk <- readRDS("/icgc/analysis/OE0565_projects/tce/MouseArray/data/wgbs_mm10_hierachy_methrix/2022-06-01_wgbs_lsk.RDS")
 wgbs.filt <- coverage_filter(m = wgbs.lsk, cov_thr = 10, min_samples = 2) #retained 17,255,601 cpg sites of 20,383,623 (84.65%)
 wgbs.mat <- get_matrix(wgbs.filt,"M",add_loci = T,in_granges = T)
 wgbs.cov <- get_matrix(wgbs.filt,"C",add_loci = T,in_granges = F)
-colMeans(wgbs.cov[,-c(1:3)],na.rm = T)
 
 # Subset by array ---------------------------------------------------------
-overlaps <- findOverlaps(wgbs.mat,annot.ranges2,type = "within") #250,007 of 286640 (87.22%)
+overlaps <- findOverlaps(wgbs.mat,annot.ranges2,type = "within") #235,386 of 262,164 (89.79%)
 overlaps.df <- as.data.frame(wgbs.mat[overlaps@from])
-overlaps.df$id <- annot.ranges2[overlaps@to]$name
-round(nrow(overlaps.df)/nrow(annot)*100,2) #87.22% of all array CpGs
-round(nrow(overlaps.df)/nrow(annot[annot$Chromosome%in%paste0("chr",1:19),])*100,2) #93.36% autosomes on mmbc
+overlaps.df$id <- annot.ranges2[overlaps@to]$IlmnID
+round(nrow(overlaps.df)/nrow(annot.sub[annot.sub$Chromosome%in%paste0("chr",1:19),])*100,2) #94.96% autosomes on mmbc
 
 # Test Plot ---------------------------------------------------------------
 wgbs <- data.frame("id"=overlaps.df$id,
                    "wgbs"=rowMeans(overlaps.df[,stringr::str_detect(colnames(overlaps.df),"lsk")],na.rm = T),
                    stringsAsFactors = F)
-dim(na.omit(wgbs)) #250,007
-dim(wgbs) #250,007
+dim(wgbs) #235,386
 sub.meth <- meth.ct[which(rownames(meth.ct)%in%wgbs$id),]
 dim(sub.meth) #234,814
-round(nrow(sub.meth)/nrow(annot)*100,2) #81.92% of all array CpGs
-round(nrow(sub.meth)/nrow(annot[annot$Chromosome%in%paste0("chr",1:19),])*100,2) #87.69%
+round(nrow(sub.meth)/nrow(annot.sub[annot.sub$Chromosome%in%paste0("chr",1:19),])*100,2) #94.73% of all autosomes
 array <- data.frame("id"=rownames(sub.meth),
                     "array"=rowMeans(sub.meth[,stringr::str_detect(colnames(sub.meth),"lsk")]),
                     stringsAsFactors = F)
-table(wgbs$id%in%array$id)
+table(wgbs$id%in%array$IlmnID)
 merged.plot <- merge(wgbs,array,by.x="id",by.y="id",all.x=F,all.y=F)
 head(merged.plot)
 dim(merged.plot) #234814
-table(is.na(merged.plot$wgbs)) #320 NAs
+table(is.na(merged.plot$wgbs))
 
 p1 <- print(ggplot(merged.plot,aes(wgbs,array))+
         #geom_pointdensity() +
@@ -107,7 +98,7 @@ dev.off()
 # Export the table about coverage information -----------------------------
 all.coverage <- get_matrix(wgbs.lsk,"C",add_loci = T,in_granges = T)
 overlaps.cov <- findOverlaps(all.coverage,annot.ranges2,type = "within")
-overlaps.cov.df <- as.data.frame(all.coverage[overlaps@from,])[,-c(1:5)]
+overlaps.cov.df <- as.data.frame(all.coverage[overlaps.cov@from,])[,-c(1:5)]
 
 
 meta.df <- data.frame("sites"=colSums(!is.na(get_matrix(wgbs.lsk,"M",add_loci = T,in_granges = F)[,-c(1:3)])),

@@ -29,9 +29,8 @@ table.dir <- "/icgc/analysis/OE0565_projects/mmbc_hierarchy/tables/"
 
 
 # Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-colnames(annot)[1] <- "Chromosome"
-rownames(annot) <- annot$name
+annot <- read.delim(paste0(table.dir,"2022-05-25_MMBC_annotation_modified.bed"),stringsAsFactors = F)
+rownames(annot) <- annot$IlmnID
 
 # Load the CREs -------------------------------------------------------
 mdCRE <- readRDS(paste0(data.dir,"2022-03-08_overlapping_CRE.RDS"))
@@ -57,7 +56,7 @@ genes <- getBM(
 
 # Function for CRE set to gene names --------------------------------------
 cor_cre <- function(x){
-gnames <- unique(unlist(strsplit(annot[x,"gene_name"], ",")))
+gnames <- unique(unlist(strsplit(annot[x,"Gene_name"], ",")))
 gnames_ens <- genes[genes$external_gene_name%in%gnames,"ensembl_gene_id"]
 return(mat[gnames_ens,])
 }

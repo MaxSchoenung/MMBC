@@ -52,12 +52,12 @@ dmps <- read.delim(paste0(table.dir,"2021-05-14_diff_meth_lsk_p_0.05_delt_0.2.tx
 dmps.unique <- dmps[!duplicated(dmps$site),] #37,512 unique sites
 
 # Load the annotation -----------------------------------------------------
-annot.full <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-colnames(annot.full)[1] <- "Chromosome"
+annot.full <- read.delim(paste0(table.dir,"2022-05-25_MMBC_annotation_modified.bed"),stringsAsFactors = F)
+rownames(annot.full) <- annot.full$IlmnID
 annot.full <- annot.full[annot.full$Chromosome%in%paste0("chr",1:19),]
-rownames(annot.full) <- annot.full$name
 annot <- annot.full[,1:3]
 annot.ranges <- GenomicRanges::makeGRangesFromDataFrame(annot)
+seqlevelsStyle(annot.ranges) = "UCSC"
 
 ## annotate the dmps
 dmps.annot <- cbind(annot[dmps.unique$site,],dmps.unique)
@@ -122,7 +122,6 @@ ggplot(plot.over.df.melted,aes(Var1,value,fill=Var2))+
   scale_y_continuous(labels = scales::comma)
 dev.off()
 
-
 # Overlap between catalogues and DMPs -------------------------------------
 peak.list.all <- list("DMPs"=dmp.ranges,"cCRE"=ccre.ranges,"Enhancer"=enhancer.ranges,"ImmuneCRE"=immune.cre.ranges.ext,"VisionCRE"=vision.cre.ranges)
 peak.names <- lapply(peak.list.all,function(x)unique(names(annot.ranges)[findOverlaps(annot.ranges,x)@from]))
@@ -144,6 +143,15 @@ length(chromCRE) #94,943
 length(novel_mdCRE) #12,856
 length(overlap_mdCRE) #24,656
 
+
+# Check -------------------------------------------------------------------
+mdCRE2 <- readRDS(paste0(data.dir,"2022-03-08_overlapping_CRE.RDS"))
+chromCRE2 <- readRDS(paste0(data.dir,"2022-03-08_previous_CRE.RDS"))
+novel_mdCRE2 <- readRDS(paste0(data.dir,"2022-03-08_novel_mdCRE.RDS"))
+all(mdCRE2%in%overlap_mdCRE)
+all(chromCRE2%in%chromCRE)
+all(novel_mdCRE2%in%novel_mdCRE)
+
 pdf(paste0(plot.dir,Sys.Date(),"_CRE_Venn.pdf"))
 plot(eulerr::euler(c(A=length(chromCRE), B=length(novel_mdCRE), "A&B"=length(overlap_mdCRE))))
 upset(fromList(list("previousCRE"=previousCRE,"DMPs"=peak.names$DMPs)), order.by = "freq")
@@ -158,7 +166,7 @@ saveRDS(chromCRE,paste0(data.dir,Sys.Date(),"_previous_CRE.RDS"))
 peak.names.ext <- c(peak.names,list("previous_mdCRE"=overlap_mdCRE,"chromCRE"=chromCRE,"cmdCRE"=novel_mdCRE,"all_array"=annot.full$name))
 
 # Analyze the feature class distribution of those CREs --------------------
-feat.class <- lapply(peak.names.ext,function(x)round(table(annot.full[x,"feat_class"])/length(x)*100,2))
+feat.class <- lapply(peak.names.ext,function(x)round(table(annot.full[x,"Genomic_region_class"])/length(x)*100,2))
 feat.class <- do.call(rbind,feat.class)[,c(3,2,7,4,6,1,5)]
 pdf(paste0(plot.dir,Sys.Date(),"_CREs_feat_class.pdf"))
 pheatmap(feat.class,

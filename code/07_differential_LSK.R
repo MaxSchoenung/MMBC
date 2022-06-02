@@ -35,13 +35,6 @@ meth.rnb <- meth(rnb,row.names=T)
 colnames(meth.rnb) <- pheno.rnb$Sample_Name
 dim(meth.rnb)
 
-# Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-annot <- annot %>% 
-  rename(
-    "Chromosome" = "X.Chromosome")
-rownames(annot) <- annot$name
-
 # Remove PTPN11 and WBs ---------------------------------------------------
 rnb@pheno$CellType <- factor(rnb@pheno$CellType,
                              levels = c("LSK","CMP","GMP","MEP","Monocyte","Neutrophil","B-cell","CD8_t-cell","CD4_t-cell"))

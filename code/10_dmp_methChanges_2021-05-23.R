@@ -33,14 +33,6 @@ pheno.rnb$Sample_Name
 meth.rnb <- meth(rnb,row.names=T)
 colnames(meth.rnb) <- pheno.rnb$Sample_Name
 
-# Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-annot <- annot %>% 
-  rename(
-    "Chromosome" = "X.Chromosome")
-rownames(annot) <- annot$name
-annot <- annot[,1:3]
-
 
 # Changes Monocyte DMPs ---------------------------------------------------
 list.change <- list()

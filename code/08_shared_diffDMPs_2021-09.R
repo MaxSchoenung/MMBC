@@ -35,14 +35,6 @@ meth.rnb <- meth(rnb,row.names=T)
 colnames(meth.rnb) <- pheno.rnb$Sample_Name
 dim(meth.rnb)
 
-# Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-annot <- annot %>% 
-  rename(
-    "Chromosome" = "X.Chromosome")
-rownames(annot) <- annot$name
-
-
 # Load the HSC dmps -------------------------------------------------------
 dmps <- read.delim(paste0(table.dir,"2021-05-14_diff_meth_lsk_p_0.05_delt_0.2.txt"),stringsAsFactors = F)
 
@@ -123,18 +115,7 @@ pheatmap(shared[sort.vec,sort.vec],
          cluster_cols = F,
          cluster_rows = F,
          na_col="white",
-         #method="correlation",
          color = colorRampPalette(c("white","darkred"))(100),
          main = "Percentage Shared per LSK-CellType DMPs (Row-wise)"
          )
-# pheatmap(cxs.cor[sort.vec,sort.vec],
-#          cluster_cols = F,
-#          cluster_rows = F,
-#          show_rownames = F,
-#          treeheight_col = 0,
-#          treeheight_row = 0,
-#          method="correlation",
-#          main="Correlation based on Shared DMPs",
-#          color = colorRampPalette(c("steelblue", "white","darkred"))(100)
-# )
 dev.off()

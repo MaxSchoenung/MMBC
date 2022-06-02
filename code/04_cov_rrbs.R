@@ -40,16 +40,11 @@ colours <- c("LSK"="gray50",
              "CD4_t-cell"="lightskyblue")
 
 # Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-annot <- annot %>% 
-  rename(
-    "Chromosome" = "X.Chromosome")
-rownames(annot) <- annot$name
-
-## convert to GRanges
-annot.sub <- annot[,c("Chromosome","Start","End","name")]
+annot <- read.delim(paste0(table.dir,"2022-05-25_MMBC_annotation_modified.bed"),stringsAsFactors = F)
+rownames(annot) <- annot$IlmnID
+annot.sub <- annot[annot$rnbeads==T,c("Chromosome","Start","End","IlmnID")]
 annot.ranges <- makeGRangesFromDataFrame(annot.sub,keep.extra.columns = T)
-seqlevelsStyle(annot.ranges) = "UCSC" 
+seqlevelsStyle(annot.ranges) = "UCSC"
 
 ## import liftOver chain
 ch <- import.chain(paste0(table.dir,"mm9ToMm10.over.chain"))
@@ -90,7 +85,7 @@ lift_fun <- function(x){
 over_fun <- function(x){
   overlaps <- findOverlaps(x,annot.ranges,type = "within")
   over.df <- x[overlaps@from]
-  over.df$probe <- annot.sub[overlaps@to,"name"]
+  over.df$probe <- annot.sub[overlaps@to,"IlmnID"]
   return(over.df)
 }
 
@@ -115,38 +110,6 @@ mm10.list <- lapply(shaped.list, lift_fun)
 ## overlaps
 over.list <- lapply(mm10.list,over_fun)
 
-## extract coverage
-cov.list <- lapply(over.list,function(x)x$cov)
-lapply(cov.list,median)
-
-plot.list <- list()
-## plotting
-for(i in 1:length(cov.list)){
-  plot.df <- data.frame("value"=cov.list[[i]])
-  plot.list[[i]] <- ggplot(plot.df,aes(x=value))+
-    geom_histogram(bins=100)+
-    xlim(0,200)+
-    theme_classic()+
-    xlab("Coverage")+
-    ggtitle(paste0(names(cov.list)[i]," (n=",nrow(na.omit(plot.df))," sites)"))+
-    theme(plot.title = element_text(size = 10, face = "bold"))
-}
-
-# add common axis labels
-plot.list <- plot.list%>% map(~.x + labs(x=NULL, y=NULL))
-
-# plotmath expressions
-yleft <- textGrob("Count", 
-                  rot = 90, gp = gpar(fontsize = 15,fontface=2))
-
-bottom <- textGrob("Coverage", gp = gpar(fontsize = 15,fontface=2))
-
-
-pdf(paste0(plot.dir,Sys.Date(),"_hist_rrbs_cov_list.pdf"),width = 9,height = 9)
-grid.arrange(grobs = plot.list, ncol = 4,
-             left=yleft,bottom=bottom)
-dev.off()
-
 ## coverage meta data
 meta.df <- data.frame("sites"=do.call(c,lapply(shaped.list,nrow)),
                       "median_coverage"=do.call(c,lapply(shaped.list,function(x)median(x$cov))),
@@ -156,7 +119,3 @@ meta.df <- data.frame("sites"=do.call(c,lapply(shaped.list,nrow)),
                       "overlap_cov20"=do.call(c,lapply(over.list,function(x)sum(x$cov>20)))
                       )
 write.table(meta.df,paste0(table.dir,Sys.Date(),"_rrbs_coverage.txt"),sep="\t",quote=F,row.names = T)
-
-## median cov all overlapping samples
-do.call(c,lapply(over.list,function(x)x$cov))%>%median
-        

@@ -56,16 +56,11 @@ meth.ct <- meth.rnb[,1:27]
 pheno.ct <- pheno.rnb[1:27,]
 
 # Load the annotation from stephen ----------------------------------------
-annot <- read.delim(paste0(table.dir,"gene-annos_primary_one-row.bed"),stringsAsFactors = F)
-annot <- annot %>% 
-  rename(
-    "Chromosome" = "X.Chromosome")
-rownames(annot) <- annot$name
-
-## make GRanges
-annot.sub <- annot[,c("Chromosome","Start","End","name")]
+annot <- read.delim(paste0(table.dir,"2022-05-25_MMBC_annotation_modified.bed"),stringsAsFactors = F)
+rownames(annot) <- annot$IlmnID
+annot.sub <- annot[annot$rnbeads==T,c("Chromosome","Start","End","IlmnID")]
 annot.ranges <- makeGRangesFromDataFrame(annot.sub,keep.extra.columns = T)
-seqlevelsStyle(annot.ranges) = "UCSC" 
+seqlevelsStyle(annot.ranges) = "UCSC"
 
 # load rrbs data ---------------------------------------------------------------------
 ## function for shaping the files
@@ -140,7 +135,7 @@ width(beta.mm10) <- 2 #focus on C as in annotation
 # subset with annot -------------------------------------------------------
 overlaps <- findOverlaps(beta.mm10,annot.ranges,type = "within")
 overlaps.df <- as.data.frame(beta.mm10[overlaps@from])
-overlaps.df$id <- annot.ranges[overlaps@to]$name
+overlaps.df$id <- annot.ranges[overlaps@to]$IlmnID
 
 meta.df$on_array <- (nrow(overlaps.df)-colSums(is.na(overlaps.df)))[-c(1:5,22)]
 
